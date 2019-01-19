@@ -7,8 +7,8 @@
 
 ### 流程图
 
-- 流程图-绘图工具：[https://www.processon.com](https://www.processon.com)
-- 流程图-绘图源码：[libco.pos](libco.pos)
+- 绘图工具：[https://www.processon.com](https://www.processon.com)
+- 绘图源码：[libco.pos](libco.pos)
 
 ### 参考资料
 
