@@ -13,3 +13,5 @@
 ### 参考资料
 
 - [x86-64 下函数调用及栈帧原理](https://zhuanlan.zhihu.com/p/27339191)
+- [coctx_swap违反Sys V ABI约定](https://github.com/Tencent/libco/issues/90)
+- [libco源代码解析之coctx_swap.S(i386架构)](https://zxylvlp.github.io/blog/coctx_swap.html)
