@@ -13,4 +13,5 @@
 ### 参考资料
 
 - [关于共享栈的学术论文《A Portable C++ Library for Coroutine Sequencing》(pdf)](http://akira.ruc.dk/~keld/research/COROUTINE/COROUTINE-1.0/DOC/COROUTINE_REPORT.pdf)
+- [本地Copy《A Portable C++ Library for Coroutine Sequencing》(pdf)](COROUTINE_REPORT.pdf)
 - [stack和stack frame](https://www.cnblogs.com/lian--ying/p/9159636.html)
