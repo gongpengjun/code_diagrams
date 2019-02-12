@@ -15,4 +15,4 @@
 
 - 监控平台：App内置监控SDK+监控后台
 - 灰度发布：iOS通过TestFlight对外灰度，通过AppStore后台的灰度发布机制
-- 热修复：DynamicCocoa
+- 热修复：[DynamicCocoa](http://www.cocoachina.com/ios/20161220/18400.html)
