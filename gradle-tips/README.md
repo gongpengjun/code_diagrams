@@ -1,6 +1,6 @@
 # Gradle技巧
 
-## 常用命令
+## 一、常用命令
 
 ### 查看有哪些projects
 
@@ -26,6 +26,19 @@ $ gradle :sub-project1:tasks --all
 $ gradle -q help --task compileJava
 ```
 
+### 查看properties
+
+```
+$ gradle -q properties
+```
+
+### 查看task间依赖关系
+
+```
+$ gradle dependencies
+```
+
+
 ### 查看项目的gradle详细报告
 
 ```
@@ -38,9 +51,9 @@ $ gradle build --scan
 $ gradle dependencyInsight --dependency commons-logging
 ```
 
-## 常见问题
+## 二、常见问题
 
-### 代理开关
+### 2.1 代理开关
 
 问题现象：依赖解析失败
 
@@ -74,7 +87,7 @@ $ cat ~/.gradle/gradle.properties
 #systemProp.https.proxyHost=g.cn
 #systemProp.http.proxyPort=80
 ```
-### Gradle运行速度慢
+### 2.2 Gradle运行速度慢
 
 问题现象：Gradle从maven仓库或jcenter仓库下载依赖速度很慢
 
@@ -90,4 +103,8 @@ repositories {
 	mavenCentral()
 }
 ```
+
+## 三、参考文档
+
+- [Command-Line Interface](https://docs.gradle.org/current/userguide/command_line_interface.html)
 
