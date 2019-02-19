@@ -74,3 +74,20 @@ $ cat ~/.gradle/gradle.properties
 #systemProp.https.proxyHost=g.cn
 #systemProp.http.proxyPort=80
 ```
+### Gradle运行速度慢
+
+问题现象：Gradle从maven仓库或jcenter仓库下载依赖速度很慢
+
+解决方法：使用阿里云的jcenter镜像
+
+```
+$ cat build.gradle
+repositories {
+	jcenter { url 'https://maven.aliyun.com/repository/jcenter' }
+	jcenter()
+	maven { url 'https://maven.aliyun.com/repository/apache-snapshots' }
+	maven { url 'https://maven.aliyun.com/repository/central' }
+	mavenCentral()
+}
+```
+
