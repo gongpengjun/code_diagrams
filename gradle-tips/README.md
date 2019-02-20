@@ -107,4 +107,8 @@ repositories {
 ## 三、参考文档
 
 - [Command-Line Interface](https://docs.gradle.org/current/userguide/command_line_interface.html)
+- [Gradle DSL Reference](https://docs.gradle.org/current/dsl/)
+- [Search Gradle Plugins](https://plugins.gradle.org/)
+- [Search Gradle Dependency Libs](https://mvnrepository.com/)
+- [Android Gradle plugin](https://developer.android.com/studio/releases/gradle-plugin)
 
