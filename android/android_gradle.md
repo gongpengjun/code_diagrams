@@ -2,7 +2,11 @@
 
 ## 概念和实体
 
-### 1.1 Android Gradle plugin
+### 1.1 Android Gradle plugin 和 Gradle 之间的关系
+
+![](android_gradle_plugin.png)
+
+### 1.2 Android Gradle plugin
 
 
 Android Gradle plugin 也叫 Android plugin for Gradle，是用来联系Android Studio和Gradle的。
@@ -17,7 +21,7 @@ buildscript {
 }
 ```
 
-### 1.2 Gradle
+### 1.3 Gradle
 
 - 1.2.1 Gradle在文件```gradle/wrapper/gradle-wrapper.properties```中配置
 
@@ -30,10 +34,6 @@ distributionUrl = https\://services.gradle.org/distributions/gradle-4.10.1-all.z
 ```
 ~/.gradle/wrapper/dists/
 ```
-
-### 1.3 Android Gradle plugin 和 Gradle 之间的关系
-
-![](android_gradle_plugin.png)
 
 ## 参考资料
 
