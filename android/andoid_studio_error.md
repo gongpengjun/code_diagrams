@@ -21,11 +21,12 @@ Unexpected scopes found in folder 'build/intermediates/transforms/InjectTransfor
 ![](disable_instant_run.png)
 
 
-### kotlin版本冲突
+### kotlin版本冲突 :compileDebugKotlin
 
 - 问题现象
 
 ```
+:compileDebugKotlin
 w: Runtime JAR files in the classpath should have the same version. These files were found in the classpath:
     ~/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-jdk8/1.2.30/f916048adc012c9342b796a5f84c0ac6205abcac/kotlin-stdlib-jdk8-1.2.30.jar (version 1.2)
     ~/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-jdk7/1.3.20/aa17d6fd473ce53061a7b2b9d2ae96f547cae93d/kotlin-stdlib-jdk7-1.3.20.jar (version 1.3)
