@@ -18,6 +18,8 @@ Unexpected scopes found in folder 'build/intermediates/transforms/InjectTransfor
 关掉 instant run
 ```
 
+![](disable_instant_run.png)
+
 ## 参考资料
 
 - [Android Studio常见错误集](http://xyzlf.cn/2017/04/10/android-studio-error.html)
