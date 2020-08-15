@@ -1,0 +1,41 @@
+@startuml
+title 从HTTP角度理解TCP四次挥手
+hide footbox
+skinparam monochrome true
+autonumber
+
+participant "HTTP" as HTTP_Client << Client >> order 10
+participant "TCP" as TCP_Client << Client >> order 20
+participant "TCP" as TCP_Server << Server >> order 30
+participant "HTTP" as HTTP_Server << Server >> order 40
+
+'注释
+HTTP_Client -> TCP_Client: socket.send(HTTP REQUEST)
+note left of TCP_Client: tcp send buffer
+HTTP_Client <- TCP_Client: socket.send() return bytes size
+TCP_Client -> TCP_Server: 略: HTTP REQUEST 发送和确认
+note right of TCP_Server: tcp recv buffer
+TCP_Server --> HTTP_Server: notify socket readable (epoll) - request
+HTTP_Client -> TCP_Client: socket.shutdown(SHUT_WR)
+TCP_Client -> TCP_Server: send FIN (我老板HTTP Client说完了，请求分手)
+TCP_Client <- TCP_Server: ACK (好的，同意分手)
+TCP_Server --> TCP_Server: EOF
+TCP_Server --> HTTP_Server: notify socket readable (epoll) - EOF
+... TCP连接中向右的方向已成功关闭, Client不能再发送其它http reqeust ...
+TCP_Server <- HTTP_Server: socket.recv()
+TCP_Server -> HTTP_Server: HTTP REQUEST (may encounter EOF)
+HTTP_Server -> HTTP_Server: process request\ngenerate response
+TCP_Server <- HTTP_Server: socket.send(HTTP RESPONSE)
+note right of TCP_Server: tcp send buffer
+TCP_Server -> HTTP_Server: return successfuly bytes count
+TCP_Client <- TCP_Server: 略: HTTP RESPONSE 发送和确认
+note left of TCP_Client: tcp recv buffer
+HTTP_Client -> TCP_Client: socket.recv()
+HTTP_Client <- TCP_Client: HTTP RESPONSE
+TCP_Server <- HTTP_Server: socket.close()
+TCP_Client <- TCP_Server: send FIN (我老板HTTP Server说完了，请求分手)
+TCP_Client -> TCP_Server: ACK (好的，同意分手)
+TCP_Client --> TCP_Client: EOF
+HTTP_Client <-- TCP_Client: notify EOF
+
+@enduml
