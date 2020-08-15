@@ -1,0 +1,44 @@
+@startuml
+'title SIP INVITE Sending Flow with Retransmit Timer
+
+skinparam monochrome true
+autonumber "F00 "
+hide footbox
+skinparam BoxPadding 10
+
+'skinparam headerFontSize 14
+'skinparam headerFontColor red
+'header SIP-0
+
+box "UAC"
+participant "INVITE client transaction" as UAC_ITC
+end box
+
+box "UAS"
+participant "INVITE server transaction" as UAS_ITS
+end box
+
+'hnote over UAC_ITC: None
+activate UAC_ITC
+hnote over UAC_ITC: Calling
+UAC_ITC ->x UAS_ITS: INVITE
+UAC_ITC -> UAC_ITC: start timer A (INVITE request retransmit)\n0.5s, 1s, 2s...
+UAC_ITC -> UAC_ITC: start timer B (INVITE transaction timeout)\n32s
+'hnote over Proxy_ITS: None
+UAC_ITC -> UAS_ITS: INVITE (timer A fired)
+activate UAS_ITS
+hnote over UAS_ITS: Proceeding
+UAC_ITC x<- UAS_ITS: 100 Trying / 180 Ringing
+UAC_ITC -> UAS_ITS: INVITE (timer A fired)
+note over UAS_ITS: still in Proceeding
+UAC_ITC <- UAS_ITS: 100 Trying / 180 Ringing
+hnote over UAC_ITC: Proceeding
+note right of UAC_ITC: stop timer A
+note right of UAC_ITC: stop timer B
+UAC_ITC -> UAC_ITC: restart timer C (call timeout)\n>3mins(belong to SIP Core layer)
+
+'skinparam footerFontSize 14
+'skinparam footerFontColor red
+'footer INVITE request is delivered hop-by-hop and stop retransmit after receiving provisional response(100/180)
+
+@enduml

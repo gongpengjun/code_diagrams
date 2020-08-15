@@ -11,11 +11,11 @@ skinparam BoxPadding 10
 'header SIP-0
 
 box "UAC"
-participant "Invite Transaction Client" as UAC_ITC
+participant "INVITE client transaction" as UAC_ITC
 end box
 
 box "UAS"
-participant "Invite Transaction Server" as UAS_ITS
+participant "INVITE server transaction" as UAS_ITS
 end box
 
 'hnote over UAC_ITC: None
