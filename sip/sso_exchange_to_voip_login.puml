@@ -1,0 +1,65 @@
+@startuml
+
+skinparam monochrome true
+hide footbox
+autonumber
+
+participant "IM SDK" as IM_Client << Client >> order 15
+participant "VoIP SDK" as Voip_Client << Client >> order 10
+participant "voip-signal" as Voip_Server << Server >> order 20
+participant "voip redis" as Voip_Redis << Server >> order 30
+participant "snitch-api" as Snitch << Server >> order 18
+participant "snitch-spring-api" as Snitch_Spring << Server >> order 50
+participant "snitch redis" as Snitch_Redis << Server >> order 60
+
+== /api/sso/exchange over https ==
+
+IM_Client -> Snitch: /api/sso/exchange
+IM_Client <- Snitch: 200 (sso_token: t0)
+
+== /api/token.voip over https ==
+
+IM_Client <- Voip_Client: Get token (callback)
+IM_Client -> Snitch: Fetch voip.token (sso_token: t0)
+Snitch -> Snitch_Redis: Set token t1 (ttl = 300 seconds)
+Snitch -> IM_Client: 200 (voip_token: t1)
+IM_Client -> Voip_Client: voip_token: t1
+
+== VoIP.LOGIN over halo ==
+
+'... Case 1: First Login ...
+note right of Voip_Client: Case 1: First Login
+
+Voip_Client -> Voip_Server: LOGIN(token: t1)
+... this Find is unnecessary ...
+Voip_Server -> Voip_Redis: Find session nil
+Voip_Redis -> Voip_Server: Not Found
+Voip_Server -> Snitch_Spring: /api/v1/authenticate.voip_signal(token: t1)
+Snitch_Spring -> Snitch_Redis: Find token t1
+Snitch_Redis -> Snitch_Spring: Found
+Snitch_Spring -> Voip_Server: 200
+Voip_Server -> Voip_Redis: Set session s1 (ttl=12 hours)
+Voip_Redis -> Voip_Server: OK
+Voip_Server -> Voip_Client: LOGIN(code: 200, new_session_key: s1)
+
+'... Case 2: Session Valid ...
+note right of Voip_Client: Case 2: Session Valid
+Voip_Client -> Voip_Server: LOGIN(session: s1)
+Voip_Server -> Voip_Redis: Find session s1
+Voip_Redis -> Voip_Server: Found
+Voip_Server -> Voip_Client: LOGIN(code: 200)
+
+'... Case 3: Session Expire ...
+note right of Voip_Client: Case 3: Session Expire
+Voip_Client -> Voip_Server: LOGIN(session: s1)
+Voip_Server -> Voip_Redis: Find session s1
+Voip_Redis -> Voip_Server: Not Found (session expires)
+
+... this authenticate.voip_signal is unnecessary ...
+Voip_Server -> Snitch_Spring: /api/v1/authenticate.voip_signal(token: nil)
+Snitch_Spring -> Snitch_Redis: Find token nil
+Snitch_Redis -> Snitch_Spring: Not Found
+Snitch_Spring -> Voip_Server: 401
+Voip_Server -> Voip_Client: LOGIN(code: 401)
+
+@enduml

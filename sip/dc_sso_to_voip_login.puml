@@ -1,0 +1,82 @@
+@startuml
+skinparam monochrome true
+hide footbox
+autonumber
+
+participant "Web View" as WebView << Client >> order 5
+participant "SSO" as SSO << didi >> order 18
+participant "IM SDK" as IM_Client << Client >> order 10
+participant "VoIP SDK" as Voip_Client << Client >> order 15
+participant "voip-signal" as Voip_Server << Server >> order 20
+participant "voip redis" as Voip_Redis << Server >> order 30
+participant "snitch-api-login" as Snitch << Server >> order 18
+participant "snitch-spring-api" as Snitch_Spring << Server >> order 50
+participant "snitch redis" as Snitch_Redis << Server >> order 60
+
+== SSO Login by WebView ==
+
+'SSO: https://me.xiaojukeji.com/user_login
+WebView -> SSO: https://me.xiaojukeji.com/user_login (username=zhangsan&password=PASSWORD)
+WebView <- SSO: ssoia://login?ticket=t0&username=zhangsan(t0=459c2ecc5fa665503f5e5244712752e1)
+
+== /api/sso/exchange over https ==
+
+'https://im-dichat.xiaojukeji.com/api/sso/exchange
+'snitch-api-login
+IM_Client -> Snitch: https://im-dichat.xiaojukeji.com/api/sso/exchange ("ticket": t0)
+IM_Client <- Snitch: 200 (sso_token, t1="5ca4aaf0c390ea1de5295a19a7c200e2") ttl=90 days
+'sso_token = oauth.access_token
+
+== /api/token.voip over https ==
+
+IM_Client <- Voip_Client: Get token via callback
+'https://im-dichat.xiaojukeji.com/api/token.voip
+'snitch-api-login
+IM_Client -> Snitch: Fetch https://im-dichat.xiaojukeji.com/api/token.voip (sso_token: t1)
+Snitch -> Snitch_Redis: Set token t2 (ttl = 300 seconds)
+Snitch -> IM_Client: 200 (voip_token, t2=a2358ec7011057dbc49471cb630da857)
+IM_Client -> Voip_Client: voip_token: t2
+
+== VoIP.LOGIN over halo ==
+
+' voip signal 自己管理生命周期的 session key
+' 用于鉴权时减少向用户数据源查询 token 的次数
+' 并隔离对 token 有效时长的依赖
+
+'... Case 1: First Login ...
+note right of Voip_Client: Case 1: First Login
+
+Voip_Client -> Voip_Server: LOGIN(token: t2)
+... this Find is unnecessary ...
+Voip_Server -> Voip_Redis: Find session nil
+Voip_Redis -> Voip_Server: Not Found
+'https://10.88.128.149:30440/api/v1/authenticate.voip_signal
+'snitch-spring-api
+Voip_Server -> Snitch_Spring: /api/v1/authenticate.voip_signal(token: t2)
+Snitch_Spring -> Snitch_Redis: Find token t2
+Snitch_Redis -> Snitch_Spring: Found
+Snitch_Spring -> Voip_Server: 200
+Voip_Server -> Voip_Redis: Set session s0 (ttl=12 hours)
+Voip_Server -> Voip_Client: LOGIN(code: 200, new_session_key: s0=313237728882789827322569935287712195145)
+
+'... Case 2: Session Valid ...
+note right of Voip_Client: Case 2: Session Valid
+Voip_Client -> Voip_Server: LOGIN(session: s0)
+Voip_Server -> Voip_Redis: Find session s0
+Voip_Redis -> Voip_Server: Found
+Voip_Server -> Voip_Client: LOGIN(code: 200)
+
+'... Case 3: Session Expire ...
+note right of Voip_Client: Case 3: Session Expire
+Voip_Client -> Voip_Server: LOGIN(session: s0)
+Voip_Server -> Voip_Redis: Find session s0
+Voip_Redis -> Voip_Server: Not Found (session expires)
+
+... this authenticate.voip_signal is unnecessary ...
+Voip_Server -> Snitch_Spring: /api/v1/authenticate.voip_signal(token: nil)
+Snitch_Spring -> Snitch_Redis: Find token nil
+Snitch_Redis -> Snitch_Spring: Not Found
+Snitch_Spring -> Voip_Server: 401
+Voip_Server -> Voip_Client: LOGIN(code: 401)
+
+@enduml

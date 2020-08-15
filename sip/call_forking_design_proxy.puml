@@ -1,0 +1,90 @@
+@startuml
+title call forking: SIP message flow in proxy view
+
+skinparam monochrome true
+autonumber "F00 "
+hide footbox
+skinparam BoxPadding 40
+
+skinparam headerFontSize 14
+header SIP-Forking-Design-Proxy
+
+box "caller"
+participant "UAC" as Caller_UAC
+end box
+
+box "proxy"
+participant "UAS" as Proxy_UAS
+participant "Core" as Proxy_Core
+participant "UAC 1" as Proxy_UAC_1
+participant "UAC 2" as Proxy_UAC_2
+participant "UAC 3" as Proxy_UAC_3
+end box
+
+box "callee"
+participant "UAS 1" as Callee_UAS_1
+participant "UAS 2" as Callee_UAS_2
+participant "UAS 3" as Callee_UAS_3
+end box
+
+Caller_UAC -> Proxy_UAS: INVITE
+Caller_UAC <- Proxy_UAS: 100
+Proxy_UAS --> Proxy_Core: INVITE
+
+Proxy_Core --> Proxy_UAC_1: INVITE (to_tag:1)
+Proxy_UAC_1 -> Callee_UAS_1: INVITE (to_tag:1)
+Proxy_UAC_1 <- Callee_UAS_1: 180 (to_tag:1)
+Proxy_Core <-- Proxy_UAC_1: 180 (to_tag:1)
+Proxy_UAS <-- Proxy_Core: 180 (to_tag:1)
+Caller_UAC <- Proxy_UAS: 180 (to_tag:1)
+
+Proxy_Core --> Proxy_UAC_2: INVITE (to_tag:2)
+Proxy_UAC_2 -> Callee_UAS_2: INVITE (to_tag:2)
+Proxy_UAC_2 <- Callee_UAS_2: 180 (to_tag:2)
+Proxy_Core <-- Proxy_UAC_2: 180 (to_tag:2)
+Proxy_UAS <-- Proxy_Core: 180 (to_tag:2)
+Caller_UAC <- Proxy_UAS: 180 (to_tag:2)
+
+Proxy_Core --> Proxy_UAC_3: INVITE (to_tag:3)
+Proxy_UAC_3 -> Callee_UAS_3: INVITE (to_tag:3)
+Proxy_UAC_3 <- Callee_UAS_3: 180 (to_tag:3)
+Proxy_Core <-- Proxy_UAC_3: 180 (to_tag:3)
+Proxy_UAS <-- Proxy_Core: 180 (to_tag:3)
+Caller_UAC <- Proxy_UAS: 180 (to_tag:3)
+
+note right of Caller_UAC: ignore to_tag in 1xx response
+
+== wait for HUMAN input: callee user response of `UAS 1` arrive first ==
+
+Proxy_UAC_1 <- Callee_UAS_1: 200-699 (to_tag:1)
+Proxy_Core <- Proxy_UAC_1: 200-699 (to_tag:1)
+Proxy_UAS <- Proxy_Core: 200-699 (to_tag:1)
+Caller_UAC <- Proxy_UAS: 200-699 (to_tag:1)
+Proxy_UAC_2 <- Callee_UAS_2: 200-699 (to_tag:2)
+Proxy_Core <- Proxy_UAC_2: 200-699 (to_tag:2)
+note right of Proxy_Core: 200-699 of UAS 1 arrive first, responses of other UAS are ignored
+Caller_UAC -> Proxy_UAS: ACK (to_tag:1)
+Proxy_UAS --> Proxy_Core: ACK (to_tag:1)
+Proxy_Core --> Proxy_UAC_1: ACK (to_tag:1)
+Proxy_UAC_1 -> Callee_UAS_1: ACK (to_tag:1)
+
+note right of Proxy_Core: cancel other INVITE transactions
+
+Proxy_Core --> Proxy_UAC_2: CANCEL (to_tag:2)
+Proxy_UAC_2 -> Callee_UAS_2: CANCEL (to_tag:2)
+note right of Proxy_UAC_2: `UAS 2` has already sent final response 200-699
+Proxy_UAC_2 <- Callee_UAS_2: 481 (Transaction Does Not Exist) (to_tag:2)
+note right of Proxy_UAC_2: send BYE to kick UAS 2 off 
+Proxy_UAC_2 -> Callee_UAS_2: BYE (to_tag:2)
+Proxy_UAC_2 <- Callee_UAS_2: 200 (BYE) (to_tag:2)
+|||
+Proxy_Core --> Proxy_UAC_3: CANCEL (to_tag:3)
+Proxy_UAC_3 -> Callee_UAS_3: CANCEL (to_tag:3)
+Proxy_UAC_3 <- Callee_UAS_3: 200 (CANCEL) (to_tag:3)
+Proxy_UAC_3 <- Callee_UAS_3: 487 (INVITE) (to_tag:3)
+Proxy_UAC_3 -> Callee_UAS_3: ACK (487) (to_tag:3)
+
+skinparam footerFontSize 14
+footer proxy core is awareness of call forking (https://tools.ietf.org/html/rfc3261#page-55)
+
+@enduml

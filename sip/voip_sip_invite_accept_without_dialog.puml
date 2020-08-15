@@ -1,0 +1,64 @@
+@startuml
+title Invite and Accept Flow
+skinparam monochrome true
+hide footbox
+autonumber "F00 "
+skinparam BoxPadding 40
+
+skinparam footerFontSize 14
+'skinparam footerFontColor red
+footer ACK Transaction is NOT standard transaction
+
+box "caller"
+participant "INVITE Transaction Client" as InviteTC << caller >>
+participant "ACK Transaction Client 1" as AckTC1 << caller >>
+participant "ACK Transaction Client 2" as AckTC2 << caller >>
+end box
+
+box "callee"
+participant "INVITE Transaction Server" as InviteTS << callee >>
+participant "ACK Transaction Server" as AckTS << callee >>
+end box
+
+activate InviteTC
+activate InviteTS
+
+note over InviteTC: None
+note over InviteTS: None
+InviteTC -> InviteTS: INVITE request
+note over InviteTC: Calling
+note over InviteTS: Proceeding
+InviteTC <- InviteTS: 180 Ringing
+note over InviteTC: Proceeding
+note right of InviteTC: stop resend INVITE
+== wait for HUMAN input ==
+InviteTS <-- : callee user accept
+note over InviteTS: Terminated
+deactivate InviteTS
+
+note over AckTS: None
+InviteTS -> AckTS**: new
+activate AckTS
+note over AckTS: Proceeding
+InviteTC <- AckTS: 200 OK (INVITE)
+note over InviteTC: Terminated
+deactivate InviteTC
+note over AckTC1: None
+AckTC1 <- InviteTC**: 200 OK (INVITE)
+activate AckTC1
+AckTC1 ->x AckTS: ACK
+note over AckTC1: Terminated
+destroy AckTC1
+AckTS -> AckTS: start retransmit timer\n(0.5s, 1s, 2s...32s)
+AckTS -> AckTS: start timer F (transaction timeout)\n(32s)
+note over AckTC2: None
+activate AckTC2
+AckTC2 <- AckTS**: 200 OK (INVITE) (retransmit timer fired)
+AckTC2 -> AckTS: ACK
+note over AckTC2: Terminated
+note right of AckTS: recv ACK or timer F fired (transaction timeout)
+destroy AckTC2
+note over AckTS: Terminated
+'deactivate AckTS
+
+@enduml

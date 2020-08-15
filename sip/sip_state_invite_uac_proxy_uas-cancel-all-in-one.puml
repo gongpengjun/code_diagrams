@@ -1,0 +1,187 @@
+@startuml
+title INVITE and caller CANCEL flow with stateful proxy
+skinparam monochrome true
+'skinparam sequenceParticipant underline
+skinparam BoxPadding 40
+autonumber "F00 "
+
+skinparam headerFontSize 14
+'skinparam headerFontColor red
+header SIP-2
+
+
+box "caller"
+participant "NTC" as UAC_NTC << UAC >>
+'participant "Core" as UAC_Core << UAC >>
+participant "INVITE Transaction Client" as UAC_ITC << UAC >>
+end box
+
+box "proxy"
+participant "NTS" as Proxy_NTS << Server >>
+participant "INVITE Transaction Server" as Proxy_ITS << Server >>
+'participant "Core" as Proxy_Core << Server >>
+participant "INVITE Transaction Client" as Proxy_ITC << Server >>
+participant "NTC" as Proxy_NTC << Server >>
+end box
+
+box "callee"
+participant "INVITE Transaction Server" as UAS_ITS << UAS >>
+'participant "Core" as UAS_Core << UAS >>
+participant "NTS" as UAS_NTS << UAS >>
+end box
+
+'activate UAC_Core
+'activate Proxy_Core
+'activate UAS_Core
+
+'UAC_Core -> UAC_ITC: new
+--> UAC_ITC: invite
+activate UAC_ITC
+hnote over UAC_ITC: Calling
+UAC_ITC -> Proxy_ITS: INVITE request
+activate Proxy_ITS
+UAC_ITC -> UAC_ITC: start timer A (INVITE request retransmit)\n0.5s, 1s, 2s...32s
+UAC_ITC -> UAC_ITC: start timer B (INVITE transaction timeout)\n32s
+'Proxy_ITS <- Proxy_Core: new UAS_ITS
+'Proxy_ITS <- Proxy_Core: INVITE request
+hnote over Proxy_ITS: Proceeding
+UAC_ITC <- Proxy_ITS: 100 Trying
+'UAC_Core -> UAC_ITC: 100 Trying
+hnote over UAC_ITC: Proceeding
+UAC_ITC -> UAC_ITC: restart timer C (Caller call timeout)\n3mins(iOS)/1mins(Android)
+
+'Proxy_Core -> Proxy_ITC: new UAC_ITC
+Proxy_ITS -> Proxy_ITC: INVITE request
+activate Proxy_ITC
+hnote over Proxy_ITC: Calling
+Proxy_ITC -> UAS_ITS: INVITE request
+activate UAS_ITS
+Proxy_ITC -> Proxy_ITC: start timer A (INVITE request retransmit)\n0.5s, 1s, 2s...32s
+Proxy_ITC -> Proxy_ITC: start timer B (INVITE transaction timeout)\n27.5s
+'UAS_ITS <- UAS_Core: new
+'UAS_ITS <- UAS_Core: INVITE request
+hnote over UAS_ITS: Proceeding
+Proxy_ITC <- UAS_ITS: 180 Ringing
+note right of UAS_ITS: Ringing
+deactivate UAS_ITS
+'Proxy_Core -> Proxy_ITC: 180 Ringing
+hnote over Proxy_ITC: Proceeding
+Proxy_ITC -> Proxy_ITC: restart timer C (Caller call timeout)\n3mins(iOS)/1mins(Android)
+Proxy_ITS <- Proxy_ITC: 180 Ringing
+UAC_ITC <- Proxy_ITS: 180 Ringing
+'UAC_Core -> UAC_ITC: 180 Ringing
+note left of UAC_ITC: Ringing
+
+'deactivate UAC_Core
+deactivate UAC_ITC
+deactivate Proxy_ITS
+deactivate Proxy_ITC
+'deactivate UAS_Core
+
+== INVITE transaction wait for HUMAN input, user cancel, CANCEL transaction begin ==
+
+-> UAC_NTC**: caller user cancel
+'activate UAC_Core
+'activate UAS_Core
+'UAC_Core -> UAC_NTC**: new
+'UAC_Core -> UAC_NTC: cancel
+activate UAC_NTC
+hnote over UAC_NTC: Trying
+UAC_NTC -> Proxy_NTS**: CANCEL request
+activate Proxy_NTS
+UAC_NTC -> UAC_NTC: start timer E (request retransmit)\n(0.5s,1s,2s...32s)
+UAC_NTC -> UAC_NTC: start timer F (transaction timeout)\n(32s)
+'Proxy_NTS <- Proxy_Core**: new Non-invite TS
+'Proxy_NTS <- Proxy_Core: CANCEL request
+hnote over Proxy_NTS: Trying
+UAC_NTC <- Proxy_NTS: 200 OK (CANCEL)
+'UAC_NTC <- UAC_Core: 200 OK (CANCEL)
+Proxy_NTS -> Proxy_NTC**: CANCEL request
+activate Proxy_NTC
+hnote over Proxy_NTS: Completed
+Proxy_NTS -> Proxy_NTS: start timer J\n32s(wait request retransmit)
+hnote over UAC_NTC: Completed
+UAC_NTC -> UAC_NTC: start timer K (Wait response retransmit)\n5s(Maximum duration a message in network)
+hnote over UAC_NTC: Terminated
+destroy UAC_NTC
+
+Proxy_NTS -> Proxy_NTS: Timer J fired
+hnote over Proxy_NTS: Terminated
+destroy Proxy_NTS
+
+'Proxy_Core -> Proxy_NTC**: new Non-invite TC
+hnote over Proxy_NTC: Trying
+Proxy_NTC -> UAS_NTS: CANCEL request
+activate UAS_NTS
+Proxy_NTC -> Proxy_NTC: start timer E (request retransmit)\n(0.5s,1s,2s...32s)
+Proxy_NTC -> Proxy_NTC: start timer F (transaction timeout)\n(32s)
+'UAS_NTS <- UAS_Core**: new
+'UAS_NTS <- UAS_Core: CANCEL request
+hnote over UAS_NTS: Trying
+Proxy_NTC <- UAS_NTS: 200 OK (CANCEL)
+hnote over UAS_NTS: Completed
+UAS_NTS -> UAS_NTS: start timer J\n32s(wait request retransmit)
+'Proxy_Core -> Proxy_NTC: 200 OK (CANCEL)
+hnote over Proxy_NTC: Completed
+Proxy_NTC -> Proxy_NTC: start timer K (Wait response retransmit)\n5s(Maximum duration a message in network)
+hnote over Proxy_NTC: Terminated
+destroy Proxy_NTC
+
+UAS_NTS -> UAS_NTS: Timer J fired
+hnote over UAS_NTS: Terminated
+destroy UAS_NTS
+
+== CANCEL transaction end, INVITE transaction continue ==
+
+' CANCEL是hop-by-hop的
+' 487也是hop-by-hop的
+' 所以应该是 Proxy_ITS 在收到InviteTC的CANCEL时生成 487响应给InviteTC
+UAS_ITS <- UAS_NTS: 487 (INVITE) terminate
+hnote over UAS_ITS: Completed
+activate UAS_ITS
+Proxy_ITC <- UAS_ITS: 487 Request Terminated (INVITE)
+activate Proxy_ITC
+UAS_ITS <- UAS_ITS: start timer G (response retransmit)\n(0.5s, 1s, 2s...32s)
+UAS_ITS -> UAS_ITS: start timer H (Wait for ACK receipt)\n32s
+'Proxy_Core -> Proxy_ITC: 487 (INVITE)
+hnote over Proxy_ITC: Completed
+Proxy_ITC -> UAS_ITS: ACK
+Proxy_ITC -> Proxy_ITC: start timer D (Wait response retransmits)\n32s
+'UAS_ITS <- UAS_Core: ACK
+hnote over UAS_ITS: Confirmed
+UAS_ITS -> UAS_ITS: start timer I (Wait for ACK retransmits)\n5s(Maximum duration a message in network)
+
+Proxy_ITS <- Proxy_ITC: 487 (INVITE)
+activate Proxy_ITS
+hnote over UAS_ITS: Terminated
+destroy UAS_ITS
+hnote over Proxy_ITS: Completed
+
+UAC_ITC <- Proxy_ITS: 487 Request Terminated (INVITE)
+activate UAC_ITC
+Proxy_ITC -> Proxy_ITC: timer D fired
+hnote over Proxy_ITC: Terminated
+destroy Proxy_ITC
+Proxy_ITS <- Proxy_ITS: start timer G (response retransmit)\n(0.5s, 1s, 2s...32s)
+Proxy_ITS -> Proxy_ITS: start timer H (Wait for ACK receipt)\n32s
+
+'UAC_Core -> UAC_ITC: 487 (INVITE)
+hnote over UAC_ITC: Completed
+UAC_ITC -> Proxy_ITS: ACK
+UAC_ITC -> UAC_ITC: start timer D (Wait response retransmits)\n32s
+'Proxy_ITS <- Proxy_Core: ACK
+hnote over Proxy_ITS: Confirmed
+Proxy_ITS -> Proxy_ITS: start timer I (Wait for ACK retransmits)\n5s(Maximum duration a message in network)
+
+'UAS_ITS -> UAS_ITS: timer I fired
+
+'Proxy_ITS -> Proxy_ITS: timer I fired
+hnote over Proxy_ITS: Terminated
+destroy Proxy_ITS
+
+
+UAC_ITC -> UAC_ITC: timer D fired
+hnote over UAC_ITC: Terminated
+destroy UAC_ITC
+
+@enduml

@@ -1,0 +1,80 @@
+@startuml
+title SIP non-INVITE Client and Server Transaction
+
+skinparam monochrome true
+autonumber "F00 "
+hide footbox
+skinparam BoxPadding 40
+
+'skinparam headerFontSize 14
+'skinparam headerFontColor red
+'header SIP-0
+
+box "non-INVITE client transaction"
+participant "Trying" as NTC_Trying
+'participant "Proceeding" as NTC_Proceeding
+participant "Completed" as NTC_Completed
+participant "Terminated" as NTC_Terminated
+end box
+
+box "non-INVITE server transaction"
+participant "Trying" as NTS_Trying
+'participant "Proceeding" as NTS_Proceeding
+participant "Completed" as NTS_Completed
+participant "Terminated" as NTS_Terminated
+end box
+
+NTC_Trying ->x NTS_Trying: non-INVITE request\n(REGISTER/CANCEL/BYE)
+hnote over NTC_Trying: Trying
+activate NTC_Trying
+NTC_Trying -> NTC_Trying: start timer E (request retransmit)\n0.5s, 1s, 2s...32s
+NTC_Trying -> NTC_Trying: start timer F (transaction timeout)\n16s(Server)/32s(iOS)
+NTC_Trying ->x NTS_Trying: request retransmit (timer E fired)
+NTC_Trying ->x NTS_Trying: request retransmit (timer E fired)
+NTC_Trying -> NTC_Terminated: transaction timeout (timer F fired)
+activate NTC_Terminated
+hnote over NTC_Terminated: Terminated
+destroy NTC_Terminated
+NTC_Trying -> NTS_Trying: request retransmit (timer E fired)
+
+activate NTS_Trying
+hnote over NTS_Trying: Trying
+NTS_Trying -> NTS_Completed: 200-699 Response
+deactivate NTS_Trying
+activate NTS_Completed
+hnote over NTS_Completed: Completed
+
+NTC_Completed x<- NTS_Completed: 200-699 Response
+NTS_Completed <- NTS_Completed: start timer J (Wait for request retransmit)\n32s
+NTC_Trying -> NTS_Completed: request retransmit (timer E fired)
+
+NTC_Completed x<- NTS_Completed: 200-699 Response
+NTC_Trying -> NTS_Completed: request retransmit (timer E fired)
+
+deactivate NTC_Trying
+NTC_Completed <- NTS_Completed: 200-699 Response
+activate NTC_Completed
+
+hnote over NTC_Completed: Completed
+'note right of NTC_Completed: stop timer E
+'note right of NTC_Completed: stop timer F
+
+NTC_Completed -> NTC_Completed: start timer K (Wait for response retransmit)\n5s(Maximum duration a message in network)
+NTC_Completed -> NTC_Terminated: timer K fired
+activate NTC_Terminated
+deactivate NTC_Completed
+hnote over NTC_Terminated: Terminated
+destroy NTC_Terminated
+
+NTS_Completed -> NTS_Terminated: timer J fired
+activate NTS_Terminated
+deactivate NTS_Terminated
+hnote over NTS_Terminated: Terminated
+destroy NTS_Terminated
+deactivate NTS_Completed
+
+skinparam footerFontSize 14
+'skinparam footerFontColor red
+footer non-INVITE(REGISTER/CANCEL/BYE) transaction is two way handshake: (request,response) and delivered hop-by-hop
+
+@enduml

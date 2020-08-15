@@ -1,0 +1,21 @@
+@startuml
+skinparam monochrome true
+hide footbox
+autonumber
+
+participant "VoIP Client" as Client << VoIP >>
+participant "VoIP Server" as VoIP << VoIP >>
+participant "Redis Cache" as Redis << VoIP >>
+participant "Snitch Spring" as Spring << Snitch >>
+
+Client -> VoIP: Login with uid:u1,token:t1,session-key:s1
+
+VoIP -> Redis: (a-session/auth uid:u1 session-key:s1)
+VoIP <- Redis: 200 / 401
+
+VoIP -> Spring: (a-dchat/auth uid:u1 token:t1)
+VoIP <- Spring: 200 / 401
+
+Client <- VoIP: 200 / 401
+
+@enduml

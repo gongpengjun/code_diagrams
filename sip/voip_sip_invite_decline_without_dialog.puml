@@ -1,0 +1,34 @@
+@startuml
+title Invite and Decline Flow
+skinparam monochrome true
+hide footbox
+autonumber
+
+participant "INVITE Transaction Client" as InviteTC << caller >>
+participant "INVITE Transaction Server" as InviteTS << callee >>
+
+note over InviteTC: None
+note over InviteTS: None
+InviteTC -> InviteTS!!: INVITE request
+note over InviteTC: Calling
+InviteTC -> InviteTC: timer fired\n(0.5s, 1s, 2s...32s)
+InviteTC -> InviteTS: INVITE request (resend)
+note over InviteTS: Proceeding
+InviteTC <- InviteTS: respond 180 Ringing
+note over InviteTC: Proceeding
+note right of InviteTC: stop resend INVITE
+== wait for HUMAN input ==
+InviteTS <- : callee user decline
+InviteTC <- InviteTS: respond 603 Decline
+note over InviteTS: Completed
+note over InviteTC: Completed
+InviteTC -> InviteTC: start timer D (32s)
+InviteTC -> InviteTS!!: ACK
+InviteTS <- InviteTS: timer fired\n(0.5s, 1s, 2s...32s)
+InviteTC <- InviteTS: respond 603 Decline
+InviteTC -> InviteTS: ACK
+note over InviteTC: Terminated
+note over InviteTS: Confirmed
+InviteTS -> InviteTS: start timer I (5s)
+note over InviteTS: Terminated
+@enduml

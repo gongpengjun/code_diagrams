@@ -1,0 +1,35 @@
+@startuml
+title 获取VoIP Token的流程
+skinparam monochrome true
+hide footbox
+autonumber
+
+participant "Web View" as WebView << Client >> order 5
+participant "IM SDK" as IM_Client << Client >> order 10
+participant "SSO" as SSO << didi >> order 18
+participant "snitch-api-login" as Snitch << Server >> order 18
+participant "snitch redis" as Snitch_Redis << Server >> order 60
+
+== SSO Login over https ==
+
+'SSO: https://me.xiaojukeji.com/user_login
+WebView -> SSO: https://me.xiaojukeji.com/user_login (username=zhangsan&password=PASSWORD)
+WebView <- SSO: ssoia://login?ticket=t0&username=zhangsan(t0=459c2ecc5fa665503f5e5244712752e1)
+
+== /api/sso/exchange over https ==
+
+'https://im-dichat.xiaojukeji.com/api/sso/exchange
+'snitch-api-login
+IM_Client -> Snitch: https://im-dichat.xiaojukeji.com/api/sso/exchange ("ticket": t0)
+IM_Client <- Snitch: 200 (sso_token, t1="5ca4aaf0c390ea1de5295a19a7c200e2") ttl=90 days
+'sso_token = oauth.access_token
+
+== /api/token.voip over https ==
+
+'https://im-dichat.xiaojukeji.com/api/token.voip
+'snitch-api-login
+IM_Client -> Snitch: Fetch https://im-dichat.xiaojukeji.com/api/token.voip (sso_token: t1)
+Snitch -> Snitch_Redis: Set token t2 (ttl = 300 seconds)
+IM_Client <- Snitch : 200 (voip_token, t2=a2358ec7011057dbc49471cb630da857)
+
+@enduml

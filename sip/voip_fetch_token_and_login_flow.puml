@@ -1,0 +1,40 @@
+@startuml
+skinparam monochrome true
+hide footbox
+
+participant Voip_Client order 10
+participant Voip_Server order 20
+participant Voip_Redis order 30
+participant Snitch order 40
+participant Snitch_Redis order 50
+
+Voip_Client -> Snitch: 1. fetch voip.token
+Snitch -> Snitch_Redis: 2. set Token t1 (ttl = 300 seconds)
+Snitch -> Voip_Client: 3. return Token t1
+
+Voip_Client -> Voip_Server: 4. LOGIN(token: t1, session: nil)
+Voip_Server -> Voip_Redis: 5. Find Session nil
+Voip_Redis -> Voip_Server: 6. nil
+Voip_Server -> Snitch: 7. authenticate.voip_signal(token: t1)
+Snitch -> Snitch_Redis: 8. Find Token t1
+Snitch_Redis -> Snitch: 9. Find it
+Snitch -> Voip_Server: 10. 200
+Voip_Server -> Voip_Redis: 11. set Session s1 and expire it
+Voip_Redis -> Voip_Server: 12. OK
+Voip_Server -> Voip_Client: 13. LOGIN(code: 200, new_session_key: s1)
+
+Voip_Client -> Voip_Server: 14. LOGIN(token: nil, session: s1)
+Voip_Server -> Voip_Redis: 15. Find Session s1 (ttl=12 hours)
+Voip_Redis -> Voip_Server: 16. Find it
+Voip_Server -> Voip_Client: 17. LOGIN(code: 200)
+
+Voip_Client -> Voip_Server: 18. LOGIN(token: nil, session: s1)
+Voip_Server -> Voip_Redis: 19. Find Session s1
+Voip_Redis -> Voip_Server: 20. nil
+Voip_Server -> Snitch: 21. authenticate.voip_signal(token: nil)
+Snitch -> Snitch_Redis: 22. Find Token nil
+Snitch_Redis -> Snitch: 23. nil
+Snitch -> Voip_Server: 24. 401
+Voip_Server -> Voip_Client: 25. 401
+
+@enduml

@@ -1,0 +1,89 @@
+@startuml
+title SIP callee Accept flow
+skinparam monochrome true
+hide footbox
+autonumber "F00 "
+skinparam BoxPadding 40
+
+skinparam headerFontSize 14
+'skinparam headerFontColor red
+header SIP-0
+
+box "caller"
+participant "INVITE Transaction Client" as UAC_ITC << caller >>
+participant "ACK Transaction Client" as UAC_AckTC1 << UAC >>
+'participant "ACK Transaction Client 2" as UAC_AckTC2 << UAC >>
+end box
+
+box "proxy"
+participant "INVITE Transaction Server" as Proxy_ITS << Server >>
+participant "Proxy Core" as Proxy_Core << Server >>
+participant "INVITE Transaction Client" as Proxy_ITC << Server >>
+end box
+
+box "callee"
+participant "ACK Transaction Server" as UAS_AckTS << UAS >>
+participant "INVITE Transaction Server" as UAS_ITS << UAS >>
+end box
+
+UAC_ITC -> Proxy_ITS: INVITE
+activate UAC_ITC
+hnote over UAC_ITC: Calling
+activate Proxy_ITS
+hnote over Proxy_ITS: Proceeding
+UAC_ITC <- Proxy_ITS: 100 Trying
+hnote over UAC_ITC: Proceeding
+'hnote over Proxy_ITC: None
+Proxy_ITS -> Proxy_ITC: INVITE
+activate Proxy_ITC
+Proxy_ITC -> UAS_ITS: INVITE
+hnote over Proxy_ITC: Calling
+activate UAS_ITS
+hnote over UAS_ITS: Proceeding
+Proxy_ITC <- UAS_ITS: 180 Ringing
+note right of UAS_ITS: Ringing
+hnote over Proxy_ITC: Proceeding
+Proxy_ITS <- Proxy_ITC: 180 Ringing
+UAC_ITC <- Proxy_ITS: 180 Ringing
+note left of UAC_ITC: Ringing
+== wait for HUMAN input, callee user accept ==
+
+
+UAS_ITS <-- : callee user accept
+hnote over UAS_ITS: Terminated
+
+'hnote over UAS_AckTS: None
+UAS_ITS -> UAS_AckTS: 200 OK (INVITE)
+deactivate UAS_ITS
+activate UAS_AckTS
+hnote over UAS_AckTS: Proceeding
+Proxy_ITC <- UAS_AckTS: 200 OK (INVITE)
+'UAS_AckTS -> UAS_AckTS: start retransmit timer\n(0.5s, 1s, 2s...32s)
+'UAS_AckTS -> UAS_AckTS: start timer F (transaction timeout)\n(32s)
+'Proxy_ITC <- UAS_AckTS: 200 OK (INVITE) retransmit timer fired
+hnote over Proxy_ITC: Terminated
+Proxy_ITS <- Proxy_ITC: 200 OK (INVITE)
+deactivate Proxy_ITC
+hnote over Proxy_ITS: Terminated
+UAC_ITC <- Proxy_ITS: 200 OK (INVITE)
+deactivate Proxy_ITS
+hnote over UAC_ITC: Terminated
+deactivate UAC_ITC
+note left of UAC_ITC: Established
+'hnote over UAC_AckTC1: None
+UAC_AckTC1 <- UAC_ITC: 200 OK (INVITE)
+activate UAC_AckTC1
+UAC_AckTC1 -> Proxy_Core: ACK
+deactivate UAC_AckTC1
+activate Proxy_Core
+Proxy_Core -> UAS_AckTS: ACK
+deactivate Proxy_Core
+hnote over UAS_AckTS: Terminated
+note right of UAS_AckTS: Established
+deactivate UAS_AckTS
+
+skinparam footerFontSize 14
+'skinparam footerFontColor red
+footer INVITE Accept transaction is three way handshake(request,200,ACK) but delivered end-to-end (UAS retransmit 200 and UAC ACK it, the middle proxy only forwards 200/ACK)\n1. 200 is retransmitted only by UAS if UAS NOT receive ACK (retransmit timer fired); 2. proxy merely forwards 200; 3. ACK generated only by the UAC when UAC receive 200; 4. proxy merely forwards ACK
+
+@enduml

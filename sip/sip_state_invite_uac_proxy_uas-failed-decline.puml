@@ -1,0 +1,90 @@
+@startuml
+title INVITE Decline flow with stateful proxy
+!pragma teoz true
+skinparam monochrome true
+autonumber "F00 "
+hide footbox
+skinparam BoxPadding 40
+
+skinparam headerFontSize 14
+'skinparam headerFontColor red
+header SIP-603
+
+box "caller"
+participant "Invite Transaction Client" as UAC_ITC << UAC >>
+end box
+
+box "proxy"
+participant "Invite Transaction Server" as Proxy_ITS << Server >>
+participant "Invite Transaction Client" as Proxy_ITC << Server >>
+end box
+
+box "callee"
+participant "Invite Transaction Server" as UAS_ITS << UAS >>
+end box
+
+
+'hnote over UAC_ITC: None
+UAC_ITC -> Proxy_ITS: INVITE
+activate UAC_ITC
+hnote over UAC_ITC: Calling
+activate Proxy_ITS
+hnote over Proxy_ITS: Proceeding
+UAC_ITC <- Proxy_ITS: 100 Trying
+hnote over UAC_ITC: Proceeding
+'hnote over Proxy_ITC: None
+Proxy_ITS -> Proxy_ITC: INVITE
+activate Proxy_ITC
+Proxy_ITC -> UAS_ITS: INVITE
+hnote over Proxy_ITC: Calling
+activate UAS_ITS
+hnote over UAS_ITS: Proceeding
+Proxy_ITC <- UAS_ITS: 180 Ringing
+note right of UAS_ITS: Ringing
+hnote over Proxy_ITC: Proceeding
+Proxy_ITS <- Proxy_ITC: 180 Ringing
+UAC_ITC <- Proxy_ITS: 180 Ringing
+note left of UAC_ITC: Ringing
+
+== wait for HUMAN input ==
+
+UAS_ITS <--] : callee user decline
+hnote over UAS_ITS: Completed
+Proxy_ITC <- UAS_ITS: 603 Decline
+UAS_ITS <- UAS_ITS: start timer G (response retransmit)\n(0.5s, 1s, 2s...32s)
+UAS_ITS -> UAS_ITS: start timer H (Wait for ACK receipt)\n32s
+hnote over Proxy_ITC: Completed
+Proxy_ITS <- Proxy_ITC: 603 Decline
+hnote over Proxy_ITS: Completed
+Proxy_ITC -> UAS_ITS: ACK (603)
+Proxy_ITC -> Proxy_ITC: start timer D (Wait response retransmits)\n32s
+hnote over UAS_ITS: Confirmed
+'note right of UAS_ITS: stop timer H (Wait for ACK receipt)
+UAS_ITS -> UAS_ITS: start timer I (Wait for ACK retransmits)\n5s(Maximum duration a message in network)
+UAC_ITC <- Proxy_ITS: 603 Decline
+Proxy_ITS <- Proxy_ITS: start timer G (response retransmit)\n(0.5s, 1s, 2s...32s)
+Proxy_ITS -> Proxy_ITS: start timer H (Wait for ACK receipt)\n32s
+hnote over UAC_ITC: Completed
+UAS_ITS -> UAS_ITS: timer H or I fired
+hnote over UAS_ITS: Terminated
+deactivate UAS_ITS
+UAC_ITC -> Proxy_ITS: ACK (603)
+UAC_ITC -> UAC_ITC: start timer D (Wait response retransmits)\n32s
+hnote over Proxy_ITS: Confirmed
+'note right of Proxy_ITS: stop timer H (Wait for ACK receipt)
+Proxy_ITS -> Proxy_ITS: start timer I (Wait for ACK retransmits)\n5s(Maximum duration a message in network)
+Proxy_ITC -> Proxy_ITC: timer D fired
+hnote over Proxy_ITC: Terminated
+deactivate Proxy_ITC
+Proxy_ITS -> Proxy_ITS: timer H or I fired
+hnote over Proxy_ITS: Terminated
+deactivate Proxy_ITS
+UAC_ITC -> UAC_ITC: timer D fired
+hnote over UAC_ITC: Terminated
+deactivate UAC_ITC
+
+skinparam footerFontSize 14
+'skinparam footerFontColor red
+footer INVITE is three way handshake (request,603,ack) and delivered hop-by-hop when decline
+
+@enduml

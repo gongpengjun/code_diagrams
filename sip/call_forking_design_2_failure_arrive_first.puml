@@ -1,0 +1,120 @@
+@startuml
+title call forking: DECLINE flow
+
+skinparam monochrome true
+autonumber "F00 "
+hide footbox
+'skinparam BoxPadding 40
+
+skinparam headerFontSize 14
+header SIP-Forking-Design-2
+
+'box "caller"
+participant "UAC" as Caller_UAC <<caller>>
+'end box
+
+'box "proxy"
+participant "Proxy" as Proxy <<server>>
+'end box
+
+'box "callee"
+participant "UAS 1" as Callee_UAS_1 <<callee>>
+participant "UAS 2" as Callee_UAS_2 <<callee>>
+participant "UAS 3" as Callee_UAS_3 <<callee>>
+participant "UAS 4" as Callee_UAS_4 <<callee>>
+participant "UAS 5" as Callee_UAS_5 <<callee>>
+participant "UAS 6" as Callee_UAS_6 <<callee>>
+participant "UAS 7" as Callee_UAS_7 <<callee>>
+'end box
+
+Caller_UAC -> Proxy: INVITE
+Caller_UAC <- Proxy: 100
+
+Proxy -> Callee_UAS_1: INVITE (to_tag:1)
+Proxy <- Callee_UAS_1: 180 (to_tag:1)
+Caller_UAC <- Proxy: 180 (to_tag:1)
+
+Proxy -> Callee_UAS_2: INVITE (to_tag:2)
+Proxy <- Callee_UAS_2: 180 (to_tag:2)
+Caller_UAC <- Proxy: 180 (to_tag:2)
+
+Proxy -> Callee_UAS_3: INVITE (to_tag:3)
+Proxy <- Callee_UAS_3: 180 (to_tag:3)
+Caller_UAC <- Proxy: 180 (to_tag:3)
+
+Proxy -> Callee_UAS_4: INVITE (to_tag:4)
+Proxy <- Callee_UAS_4: 180 (to_tag:4)
+Caller_UAC <- Proxy: 180 (to_tag:4)
+
+Proxy -> Callee_UAS_5: INVITE (to_tag:5)
+Proxy <- Callee_UAS_5: 180 (to_tag:5)
+Caller_UAC <- Proxy: 180 (to_tag:5)
+
+Proxy -> Callee_UAS_6: INVITE (to_tag:6)
+Proxy <- Callee_UAS_6: 180 (to_tag:6)
+Caller_UAC <- Proxy: 180 (to_tag:6)
+
+Proxy -> Callee_UAS_7: INVITE (to_tag:7)
+Proxy <- Callee_UAS_7: 180 (to_tag:7)
+Caller_UAC <- Proxy: 180 (to_tag:7)
+
+note right of Caller_UAC: ignore to_tag in 1xx response
+
+== callee user accept on device `UAS 1` and the 200 of `UAS 1` arrive server first ==
+
+Proxy <- Callee_UAS_1: 603 (to_tag:1)
+Proxy <- Callee_UAS_2: 200 (to_tag:2)
+Proxy <- Callee_UAS_3: 408 (to_tag:3)
+Proxy <- Callee_UAS_4: 486 (to_tag:4)
+Proxy <- Callee_UAS_5: 487 (to_tag:5)
+Proxy <- Callee_UAS_6: 603 (to_tag:6)
+note right of Proxy: 603 of UAS 1 arrive first, responses of other UAS are ignored
+Proxy -> Callee_UAS_1: ACK (to_tag:1)
+Caller_UAC <- Proxy: 603 (to_tag:1)
+Caller_UAC -> Proxy: ACK (to_tag:1)
+note right of Proxy: cancel other INVITE transactions
+|||
+Proxy -> Callee_UAS_2: CANCEL (to_tag:2)
+note right of Proxy: `UAS 2` has already sent final response 200
+Proxy <- Callee_UAS_2: 481 (Transaction Does Not Exist) (to_tag:2)
+note right of Proxy: send BYE to kick UAS 2 off 
+Proxy -> Callee_UAS_2: BYE (to_tag:2)
+Proxy <- Callee_UAS_2: 200 (BYE) (to_tag:2)
+|||
+Proxy -> Callee_UAS_3: CANCEL (to_tag:3)
+note right of Proxy: `UAS 3` has already sent final response 408
+Proxy <- Callee_UAS_3: 481 (Transaction Does Not Exist) (to_tag:3)
+note right of Proxy: send BYE to kick UAS 3 off 
+Proxy -> Callee_UAS_3: BYE (to_tag:3)
+Proxy <- Callee_UAS_3: 200 (BYE) (to_tag:3)
+|||
+Proxy -> Callee_UAS_4: CANCEL (to_tag:4)
+note right of Proxy: `UAS 4` has already sent final response 486
+Proxy <- Callee_UAS_4: 481 (Transaction Does Not Exist) (to_tag:4)
+note right of Proxy: send BYE to kick UAS 4 off 
+Proxy -> Callee_UAS_4: BYE (to_tag:4)
+Proxy <- Callee_UAS_4: 200 (BYE) (to_tag:4)
+|||
+Proxy -> Callee_UAS_5: CANCEL (to_tag:5)
+note right of Proxy: `UAS 5` has already sent final response 487
+Proxy <- Callee_UAS_5: 481 (Transaction Does Not Exist) (to_tag:5)
+note right of Proxy: send BYE to kick UAS 5 off 
+Proxy -> Callee_UAS_5: BYE (to_tag:5)
+Proxy <- Callee_UAS_5: 200 (BYE) (to_tag:5)
+|||
+Proxy -> Callee_UAS_6: CANCEL (to_tag:6)
+note right of Proxy: `UAS 6` has already sent final response 603
+Proxy <- Callee_UAS_6: 481 (Transaction Does Not Exist) (to_tag:6)
+note right of Proxy: send BYE to kick UAS 6 off 
+Proxy -> Callee_UAS_6: BYE (to_tag:6)
+Proxy <- Callee_UAS_6: 200 (BYE) (to_tag:6)
+|||
+Proxy -> Callee_UAS_7: CANCEL (to_tag:7)
+Proxy <- Callee_UAS_7: 200 (CANCEL) (to_tag:7)
+Proxy <- Callee_UAS_7: 487 (INVITE) (to_tag:7)
+Proxy -> Callee_UAS_7: ACK (487) (to_tag:7)
+
+skinparam footerFontSize 14
+footer https://tools.ietf.org/html/rfc3261#page-55
+
+@enduml

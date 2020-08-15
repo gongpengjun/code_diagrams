@@ -1,0 +1,82 @@
+@startuml
+title non-INVITE transaction flow with stateful proxy
+skinparam monochrome true
+'skinparam sequenceParticipant underline
+skinparam BoxPadding 40
+hide footbox
+autonumber "F00 "
+
+skinparam headerFontSize 14
+'skinparam headerFontColor red
+header SIP-0
+
+box "caller"
+participant "non-INVITE Transaction Client" as UAC_NTC << UAC >>
+end box
+
+box "proxy"
+participant "non-INVITE Transaction Server" as Proxy_NTS << Server >>
+participant "non-INVITE Transaction Client" as Proxy_NTC << Server >>
+end box
+
+box "callee"
+participant "non-INVITE Transaction Server" as UAS_NTS << UAS >>
+end box
+
+activate UAC_NTC
+
+ --> UAC_NTC: non-INVITE request
+hnote over UAC_NTC: Trying
+UAC_NTC ->x Proxy_NTS: non-INVITE request
+UAC_NTC -> UAC_NTC: start timer E (request retransmit)\n(0.5s,1s,2s...32s)
+UAC_NTC -> UAC_NTC: start timer F (transaction timeout)\n(32s)
+UAC_NTC -> Proxy_NTS: non-INVITE request (timer E fired)
+hnote over Proxy_NTS: Trying
+activate Proxy_NTS
+Proxy_NTS -> Proxy_NTC: non-INVITE request
+activate Proxy_NTC
+UAC_NTC x<- Proxy_NTS: 200 OK (non-INVITE request)
+hnote over Proxy_NTS: Completed
+Proxy_NTS -> Proxy_NTS: start timer J\n32s(wait request retransmit)
+UAC_NTC -> Proxy_NTS: non-INVITE request (timer E fired)
+UAC_NTC <- Proxy_NTS: 200 OK (non-INVITE request)
+hnote over UAC_NTC: Completed
+note right of UAC_NTC: stop time E
+note right of UAC_NTC: stop time F
+UAC_NTC -> UAC_NTC: start timer K (Wait response retransmit)\n5s(Maximum duration a message in network)
+UAC_NTC -> UAC_NTC: timer K fired
+hnote over UAC_NTC: Terminated
+destroy UAC_NTC
+Proxy_NTS -> Proxy_NTS: Timer J fired (32s)
+hnote over Proxy_NTS: Terminated
+destroy Proxy_NTS
+
+hnote over Proxy_NTC: Trying
+Proxy_NTC ->x UAS_NTS: non-INVITE request
+Proxy_NTC -> Proxy_NTC: start timer E (request retransmit)\n(0.5s,1s,2s...32s)
+Proxy_NTC -> Proxy_NTC: start timer F (transaction timeout)\n(32s)
+Proxy_NTC -> UAS_NTS: non-INVITE request (timer E fired)
+activate UAS_NTS
+hnote over UAS_NTS: Trying
+Proxy_NTC x<- UAS_NTS: 200 OK (non-INVITE request)
+hnote over UAS_NTS: Completed
+UAS_NTS -> UAS_NTS: start timer J\n32s(wait request retransmit)
+Proxy_NTC -> UAS_NTS: non-INVITE request (timer E fired)
+Proxy_NTC <- UAS_NTS: 200 OK (non-INVITE request)
+hnote over Proxy_NTC: Completed
+note right of Proxy_NTC: stop time E
+note right of Proxy_NTC: stop time F
+Proxy_NTC -> Proxy_NTC: start timer K (Wait response retransmit)\n5s(Maximum duration a message in network)
+Proxy_NTC -> Proxy_NTC: Timer K fired
+hnote over Proxy_NTC: Terminated
+destroy Proxy_NTC
+
+UAS_NTS -> UAS_NTS: timer J fired (32s)
+hnote over UAS_NTS: Terminated
+destroy UAS_NTS
+
+skinparam footerFontSize 14
+'skinparam footerFontColor red
+footer non-INVITE(CANCEL/BYE) transaction is two way handshake (request,response) and delivered hop-by-hop
+
+@enduml

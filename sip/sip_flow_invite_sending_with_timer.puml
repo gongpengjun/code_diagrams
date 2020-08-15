@@ -1,0 +1,67 @@
+@startuml
+title SIP INVITE Sending Flow
+
+skinparam monochrome true
+autonumber "F00 "
+hide footbox
+skinparam BoxPadding 40
+
+skinparam headerFontSize 14
+'skinparam headerFontColor red
+header SIP-0
+
+box "caller"
+participant "Invite Transaction Client" as UAC_ITC << UAC >>
+end box
+
+box "proxy"
+participant "Invite Transaction Server" as Proxy_ITS << Server >>
+participant "Invite Transaction Client" as Proxy_ITC << Server >>
+end box
+
+box "callee"
+participant "Invite Transaction Server" as UAS_ITS << UAS >>
+end box
+
+'hnote over UAC_ITC: None
+UAC_ITC ->x Proxy_ITS: INVITE
+activate UAC_ITC
+hnote over UAC_ITC: Calling
+UAC_ITC -> UAC_ITC: start timer A (INVITE request retransmit)\n0.5s, 1s, 2s...32s
+UAC_ITC -> UAC_ITC: start timer B (INVITE transaction timeout)\n32s
+'hnote over Proxy_ITS: None
+UAC_ITC -> Proxy_ITS: INVITE (timer A fired)
+activate Proxy_ITS
+hnote over Proxy_ITS: Proceeding
+UAC_ITC <- Proxy_ITS: 100 Trying
+hnote over UAC_ITC: Proceeding
+note right of UAC_ITC: stop timer A
+note right of UAC_ITC: stop timer B
+UAC_ITC -> UAC_ITC: restart timer C (Caller call timeout)\n3mins(iOS)/1mins(Android)
+'hnote over Proxy_ITC: None
+Proxy_ITS -> Proxy_ITC: INVITE
+activate Proxy_ITC
+Proxy_ITC ->x UAS_ITS: INVITE
+hnote over Proxy_ITC: Calling
+Proxy_ITC -> Proxy_ITC: start timer A (INVITE request retransmit)\n0.5s, 1s, 2s...32s
+Proxy_ITC -> Proxy_ITC: start timer B (INVITE transaction timeout)\n27.5s
+'hnote over UAS_ITS: None
+Proxy_ITC -> UAS_ITS: INVITE (timer A fired)
+activate UAS_ITS
+hnote over UAS_ITS: Proceeding
+Proxy_ITC <- UAS_ITS: 180 Ringing
+note right of Proxy_ITC: stop timer A
+note right of Proxy_ITC: stop timer B
+Proxy_ITC -> Proxy_ITC: restart timer C (proxy call timeout)\n5mins
+note right of UAS_ITS: Ringing
+hnote over Proxy_ITC: Proceeding
+Proxy_ITS <- Proxy_ITC: 180 Ringing
+UAC_ITC <- Proxy_ITS: 180 Ringing
+note left of UAC_ITC: Ringing
+== wait for HUMAN input ==
+
+skinparam footerFontSize 14
+'skinparam footerFontColor red
+footer INVITE request is delivered hop-by-hop and stop retransmit after receiving provisional response(100/180)
+
+@enduml

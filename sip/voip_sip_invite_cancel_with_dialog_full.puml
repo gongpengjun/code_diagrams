@@ -1,0 +1,54 @@
+@startuml
+title Invite and Cancel Flow
+skinparam monochrome true
+autonumber
+
+box "caller"
+participant "CancelTC" as CancelTC << caller >>
+participant "UAC" as UAC << caller >>
+participant "InviteTC" as InviteTC << caller >>
+end box
+
+box "callee"
+participant "InviteTS" as InviteTS << callee >>
+participant "UAS" as UAS << caller >>
+participant "CancelTS" as CancelTS << callee >>
+end box
+
+UAC -> InviteTC**: new
+note over InviteTC: None
+InviteTC -> UAS!!: INVITE request
+note over InviteTC: Calling
+InviteTC -> InviteTC: timer fired\n(0.5s, 1s, 2s...32s)
+InviteTC -> UAS: INVITE request (resend)
+note over InviteTS: None
+InviteTS <- UAS**:new
+note over InviteTS: Proceeding
+InviteTC <- InviteTS: respond 180 Ringing
+note over InviteTC: Proceeding
+note right of InviteTC: stop resend INVITE
+== wait for HUMAN input ==
+
+ -> UAC: caller user cancel
+UAC -> CancelTC**: new
+CancelTC -> UAS!!: CANCEL request
+CancelTC -> CancelTC: timer fired\n(0.5s, 1s, 2s...32s)
+CancelTC -> UAS: CANCEL request (resend)
+CancelTS <- UAS**: new
+CancelTC <- CancelTS: 200 OK (CANCEL)
+note over CancelTS: Terminated
+note over CancelTC: Terminated
+InviteTS <- UAS: doCancel()
+note over InviteTS: Completed
+InviteTC <- InviteTS: 487 Request Terminated (INVITE)
+note over InviteTC: Completed
+InviteTC -> InviteTC: start timer D (32s)
+InviteTC -> InviteTS!!: ACK
+InviteTS <- InviteTS: timer fired\n(0.5s, 1s, 2s...32s)
+InviteTC <- InviteTS: 487 Request Terminated (INVITE)
+InviteTC -> InviteTS: ACK
+note over InviteTC: Terminated
+note over InviteTS: Confirmed
+InviteTS -> InviteTS: start timer I (5s)
+note over InviteTS: Terminated
+@enduml

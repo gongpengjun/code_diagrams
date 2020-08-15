@@ -1,0 +1,71 @@
+@startuml
+title Invite and Accept Flow
+skinparam monochrome true
+skinparam sequenceParticipant underline
+skinparam BoxPadding 40
+hide footbox
+autonumber "F00 "
+
+skinparam footerFontSize 14
+'skinparam footerFontColor red
+footer ACK Transaction is NOT standard transaction
+
+box "caller"
+participant "ACK Transaction Client 2" as AckTC2 << caller >>
+participant "ACK Transaction Client 1" as AckTC1 << caller >>
+participant "UAC Core" as InviteClientDialog << caller >>
+participant "INVITE Transaction Client" as InviteTC << caller >>
+end box
+
+
+box "callee"
+participant "INVITE Transaction Server" as InviteTS << callee >>
+participant "UAS Core" as InviteServerDialog << callee >>
+participant "ACK Transaction Server" as AckTS << callee >>
+end box
+
+
+activate InviteTC
+activate InviteClientDialog
+activate InviteServerDialog
+activate InviteTS
+
+InviteClientDialog -> InviteTC: new INVITE Transaction Client 
+note over InviteTC: ITC: None
+InviteTC -> InviteServerDialog: send INVITE request
+note over InviteTC: ITC: Calling
+InviteTS <- InviteServerDialog: new INVITE Transaction Server
+note over InviteTS: ITS: None
+InviteTS <- InviteServerDialog: forward INVITE request
+InviteTC <- InviteTS: send 180 Ringing
+note over InviteTS: ITS: Proceeding
+note over InviteTC: ITC: Proceeding
+note left of InviteTC: stop INVITE request retry timer
+== wait for HUMAN input ==
+InviteServerDialog <- : callee user accept
+InviteTS <- InviteServerDialog: respond 200
+note over InviteTS: ITS: Terminated
+deactivate InviteTS
+AckTS <- InviteServerDialog**: new ACK Transaction Server
+InviteTC <- AckTS: send respond 200 OK
+activate AckTS
+InviteClientDialog <- InviteTC: callback onInviteTransactionSuccess()
+note over InviteTC: ITC: Terminated
+deactivate InviteTC
+AckTC1 <- InviteClientDialog**: new ACK Transaction Client
+AckTC1 <- InviteClientDialog: forward respond 200 OK
+activate AckTC1
+AckTC1 -x AckTS: send ACK
+note over AckTC1: Terminated
+deactivate AckTC1
+AckTS -> AckTS: timer fired\n(0.5s, 1s, 2s...32s)
+InviteClientDialog <- AckTS: send respond 200 OK
+AckTC2 <- InviteClientDialog**: new ACK Transaction Client
+AckTC2 <- InviteClientDialog: forward respond 200 OK
+activate AckTC2
+AckTC2 -> AckTS: send ACK
+note over AckTC2: Terminated
+deactivate AckTC2
+note over AckTS: Terminated
+deactivate AckTS
+@enduml

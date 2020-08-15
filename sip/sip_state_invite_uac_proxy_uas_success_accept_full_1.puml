@@ -1,0 +1,114 @@
+@startuml
+title INVITE Accept flow with stateful proxy
+skinparam monochrome true
+hide footbox
+autonumber "F00 "
+skinparam BoxPadding 40
+
+skinparam headerFontSize 14
+'skinparam headerFontColor red
+header SIP-1
+
+box "caller"
+participant "INVITE Transaction Client" as UAC_ITC << UAC >>
+participant "ACK Transaction Client" as UAC_AckTC1 << UAC >>
+'participant "ACK Transaction Client 2" as UAC_AckTC2 << UAC >>
+end box
+
+box "proxy"
+participant "INVITE Transaction Server" as Proxy_ITS << Server >>
+participant "Proxy Core" as Proxy_Core << Server >>
+participant "INVITE Transaction Client" as Proxy_ITC << Server >>
+end box
+
+box "callee"
+participant "ACK Transaction Server" as UAS_AckTS << UAS >>
+participant "INVITE Transaction Server" as UAS_ITS << UAS >>
+end box
+
+'hnote over UAC_ITC: None
+activate UAC_ITC
+hnote over UAC_ITC: Calling
+UAC_ITC -> Proxy_ITS: INVITE
+activate Proxy_ITS
+UAC_ITC -> UAC_ITC: start timer A (INVITE request retransmit)\n0.5s, 1s, 2s...32s
+UAC_ITC -> UAC_ITC: start timer B (INVITE transaction timeout)\n32s
+hnote over Proxy_ITS: Proceeding
+UAC_ITC <- Proxy_ITS: 100 Trying
+hnote over UAC_ITC: Proceeding
+UAC_ITC -> UAC_ITC: restart timer C (Caller call timeout)\n3mins(iOS)/1mins(Android)
+'hnote over Proxy_ITC: None
+Proxy_ITS -> Proxy_ITC: INVITE
+activate Proxy_ITC
+hnote over Proxy_ITC: Calling
+Proxy_ITC -> UAS_ITS: INVITE
+activate UAS_ITS
+Proxy_ITC -> Proxy_ITC: start timer A (INVITE request retransmit)\n0.5s, 1s, 2s...32s
+Proxy_ITC -> Proxy_ITC: start timer B (INVITE transaction timeout)\n27.5s
+hnote over UAS_ITS: Proceeding
+Proxy_ITC <- UAS_ITS: 180 Ringing
+note right of UAS_ITS: Ringing
+hnote over Proxy_ITC: Proceeding
+Proxy_ITC -> Proxy_ITC: restart timer C (Caller call timeout)\n3mins(iOS)/1mins(Android)
+Proxy_ITS <- Proxy_ITC: 180 Ringing
+UAC_ITC <- Proxy_ITS: 180 Ringing
+note left of UAC_ITC: Ringing
+
+== wait for HUMAN input ==
+
+UAS_ITS <-- : callee user accept
+hnote over UAS_ITS: Terminated
+deactivate UAS_ITS
+
+'hnote over UAS_AckTS: None
+UAS_ITS -> UAS_AckTS: 200 OK (INVITE)
+activate UAS_AckTS
+hnote over UAS_AckTS: Proceeding
+UAS_AckTS -> UAS_AckTS: start retransmit timer\n(0.5s, 1s, 2s...32s)
+UAS_AckTS -> UAS_AckTS: start timer F (transaction timeout)\n(32s)
+
+Proxy_ITC <- UAS_AckTS: 200 OK (INVITE)
+hnote over Proxy_ITC: Terminated
+Proxy_ITS <- Proxy_ITC: 200 OK (INVITE)
+deactivate Proxy_ITC
+hnote over Proxy_ITS: Terminated
+UAC_ITC <- Proxy_ITS: 200 OK (INVITE)
+deactivate Proxy_ITS
+hnote over UAC_ITC: Terminated
+deactivate UAC_ITC
+
+'hnote over UAC_AckTC1: None
+UAC_AckTC1 <- UAC_ITC: 200 OK (INVITE)
+note left of UAC_ITC: Established
+activate UAC_AckTC1
+UAC_AckTC1 -> Proxy_Core: ACK
+'hnote over UAC_AckTC1: Terminated
+deactivate UAC_AckTC1
+'hnote over UAC_AckTC2: None
+
+'Proxy_Core <- UAS_AckTS: 200 OK (INVITE) (retransmit timer fired)
+activate Proxy_Core
+'UAC_AckTC2 <- Proxy_Core**: 200 OK (INVITE) (retransmit timer fired)
+'deactivate Proxy_Core
+'activate UAC_AckTC2
+
+'hnote over Proxy_Core: 200/ACK retransmit is not belong to transaction in server\nlog:"[INFO] apply-signal. message not belong to transaction ... transition: :rsp-2xx"\nlog:"[INFO] apply-signal. message not belong to transaction ... transition: :req-ack"
+
+'UAC_AckTC2 -> Proxy_Core: ACK
+'activate Proxy_Core
+Proxy_Core -> UAS_AckTS: ACK
+deactivate Proxy_Core
+
+'hnote over UAC_AckTC2: Terminated
+'destroy UAC_AckTC2
+hnote over UAS_AckTS: Terminated
+note right of UAS_AckTS: Established
+'UAS_AckTS -> UAS_AckTS: timer F fired (transaction timeout)
+'hnote over UAS_AckTS: Terminated
+deactivate UAS_AckTS
+
+skinparam footerFontSize 14
+'skinparam footerFontColor red
+footer INVITE Accept transaction is three way handshake(request,200,ACK) but delivered end-to-end (UAS retransmit 200 and UAC ACK it, the middle proxy only forwards 200/ACK)\n1. 200 is retransmitted only by UAS if UAS NOT receive ACK (retransmit timer fired); 2. proxy merely forwards 200; 3. ACK generated only by the UAC when UAC receive 200; 4. proxy merely forwards ACK\nsource: https://tools.ietf.org/html/rfc3261#section-17
+
+@enduml

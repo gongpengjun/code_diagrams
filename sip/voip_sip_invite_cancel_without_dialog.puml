@@ -1,0 +1,40 @@
+@startuml
+title Invite and Cancel Flow
+skinparam monochrome true
+hide footbox
+autonumber
+
+participant "INVITE Transaction Client" as InviteTC << caller >>
+participant "CANCEL Transaction Client" as CancelTC << caller >>
+participant "INVITE Transaction Server" as InviteTS << callee >>
+participant "CANCEL Transaction Server" as CancelTS << callee >>
+
+note over InviteTC: None
+note over InviteTS: None
+InviteTC -> InviteTS!!: INVITE request
+note over InviteTC: Calling
+InviteTC -> InviteTC: timer fired\n(0.5s, 1s, 2s...32s)
+InviteTC -> InviteTS: INVITE request (resend)
+note over InviteTS: Proceeding
+InviteTC <- InviteTS: respond 180 Ringing
+note over InviteTC: Proceeding
+note right of InviteTC: stop resend INVITE
+== wait for HUMAN input ==
+
+ -> CancelTC**: caller user cancel
+CancelTC -> CancelTS**: CANCEL request
+CancelTC <- CancelTS: 200 OK (CANCEL)
+InviteTS <- CancelTS: cancel_invite
+note over InviteTS: Completed
+InviteTC <- InviteTS: 487 Request Terminated (INVITE)
+note over InviteTC: Completed
+InviteTC -> InviteTC: start timer D (32s)
+InviteTC -> InviteTS!!: ACK
+InviteTS <- InviteTS: timer fired\n(0.5s, 1s, 2s...32s)
+InviteTC <- InviteTS: 487 Request Terminated (INVITE)
+InviteTC -> InviteTS: ACK
+note over InviteTC: Terminated
+note over InviteTS: Confirmed
+InviteTS -> InviteTS: start timer I (5s)
+note over InviteTS: Terminated
+@enduml

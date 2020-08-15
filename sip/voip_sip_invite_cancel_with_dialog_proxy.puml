@@ -1,0 +1,167 @@
+@startuml
+title Invite and Cancel With Proxy_Core Flow
+skinparam monochrome true
+'skinparam sequenceParticipant underline
+skinparam BoxPadding 40
+autonumber "F00 "
+
+box "caller"
+participant "CancelTC" as CancelTC << UAC >>
+participant "Core" as UAC_Core << UAC >>
+participant "InviteTC" as InviteTC << UAC >>
+end box
+
+box "proxy"
+participant "NTS" as Proxy_NTS << Server >>
+participant "ITS" as Proxy_ITS << Server >>
+participant "Core" as Proxy_Core << Server >>
+participant "ITC" as Proxy_ITC << Server >>
+participant "NTC" as Proxy_NTC << Server >>
+end box
+
+box "callee"
+participant "InviteTS" as InviteTS << UAS >>
+participant "Core" as UAS_Core << UAS >>
+participant "CancelTS" as CancelTS << UAS >>
+end box
+
+activate UAC_Core
+activate Proxy_Core
+activate UAS_Core
+
+UAC_Core -> InviteTC: new
+activate InviteTC
+UAC_Core -> InviteTC: invite
+InviteTC -> Proxy_Core: INVITE request
+note over InviteTC: Calling
+Proxy_ITS <- Proxy_Core: new InviteTS
+activate Proxy_ITS
+Proxy_ITS <- Proxy_Core: INVITE request
+note over Proxy_ITS: Proceeding
+UAC_Core <- Proxy_ITS: 100 Trying
+UAC_Core -> InviteTC: 100 Trying
+note over InviteTC: Proceeding
+
+Proxy_Core -> Proxy_ITC: new InviteTC
+activate Proxy_ITC
+Proxy_Core -> Proxy_ITC: INVITE request
+Proxy_ITC -> UAS_Core: INVITE request
+note over Proxy_ITC: Calling
+InviteTS <- UAS_Core: new
+activate InviteTS
+InviteTS <- UAS_Core: INVITE request
+note over InviteTS: Proceeding
+Proxy_Core <- InviteTS: 180 Ringing
+deactivate InviteTS
+Proxy_Core -> Proxy_ITC: 180 Ringing
+note over Proxy_ITC: Proceeding
+Proxy_ITS <- Proxy_Core: 180 Ringing
+UAC_Core <- Proxy_ITS: 180 Ringing
+UAC_Core -> InviteTC: 180 Ringing
+
+deactivate UAC_Core
+deactivate InviteTC
+deactivate Proxy_ITS
+deactivate Proxy_ITC
+deactivate UAS_Core
+
+== INVITE transaction wait for HUMAN input, user cancel, CANCEL transaction begin ==
+
+ -> UAC_Core: caller user cancel
+activate UAC_Core
+activate UAS_Core
+UAC_Core -> CancelTC**: new
+UAC_Core -> CancelTC: cancel
+activate CancelTC
+CancelTC -> Proxy_Core: CANCEL request
+note over CancelTC: Trying
+Proxy_NTS <- Proxy_Core**: new Non-invite TS
+Proxy_NTS <- Proxy_Core: CANCEL request
+note over Proxy_NTS: Trying
+activate Proxy_NTS
+UAC_Core <- Proxy_NTS: 200 OK (CANCEL)
+CancelTC <- UAC_Core: 200 OK (CANCEL)
+note over Proxy_NTS: Completed
+Proxy_NTS -> Proxy_NTS: start timer J (32s)
+note over CancelTC: Completed
+CancelTC -> CancelTC: start Timer K (5s)
+CancelTC -> CancelTC: Timer K fireds
+note over CancelTC: Terminated
+destroy CancelTC
+
+Proxy_NTS -> Proxy_NTS: Timer J fired
+note over Proxy_NTS: Terminated
+destroy Proxy_NTS
+
+Proxy_Core -> Proxy_NTC**: new Non-invite TC
+Proxy_Core -> Proxy_NTC: CANCEL request
+activate Proxy_NTC
+Proxy_NTC -> UAS_Core: CANCEL request
+note over Proxy_NTC: Trying
+CancelTS <- UAS_Core**: new
+CancelTS <- UAS_Core: CANCEL request
+note over CancelTS: Trying
+activate CancelTS
+Proxy_Core <- CancelTS: 200 OK (CANCEL)
+note over CancelTS: Completed
+CancelTS -> CancelTS: start timer J (32s)
+Proxy_Core -> Proxy_NTC: 200 OK (CANCEL)
+note over Proxy_NTC: Completed
+Proxy_NTC -> Proxy_NTC: start Timer K (5s)
+Proxy_NTC -> Proxy_NTC: Timer K fired
+note over Proxy_NTC: Terminated
+destroy Proxy_NTC
+
+CancelTS -> CancelTS: Timer J fired
+note over CancelTS: Terminated
+destroy CancelTS
+
+== CANCEL transaction end, INVITE transaction continue ==
+
+' CANCEL是hop-by-hop的
+' 487也是hop-by-hop的
+' 所以应该是 Proxy_ITS 在收到InviteTC的CANCEL时生成 487响应给InviteTC
+InviteTS <- UAS_Core: terminate
+note over InviteTS: Completed
+activate InviteTS
+Proxy_Core <- InviteTS: 487 Request Terminated (INVITE)
+Proxy_Core -> Proxy_ITC: 487 (INVITE)
+activate Proxy_ITC
+note over Proxy_ITC: Completed
+Proxy_ITC -> UAS_Core: ACK
+Proxy_ITC -> Proxy_ITC: start timer D (32s)
+InviteTS <- UAS_Core: ACK
+note over InviteTS: Confirmed
+InviteTS -> InviteTS: start timer I (5s)
+
+Proxy_ITS <- Proxy_Core: 487 (INVITE)
+activate Proxy_ITS
+note over Proxy_ITS: Completed
+
+UAC_Core <- Proxy_ITS: 487 Request Terminated (INVITE)
+UAC_Core -> InviteTC: 487 (INVITE)
+activate InviteTC
+note over InviteTC: Completed
+InviteTC -> Proxy_Core: ACK
+InviteTC -> InviteTC: start timer D (32s)
+Proxy_ITS <- Proxy_Core: ACK
+note over Proxy_ITS: Confirmed
+Proxy_ITS -> Proxy_ITS: start timer I (5s)
+
+InviteTS -> InviteTS: timer I fired
+note over InviteTS: Terminated
+destroy InviteTS
+
+Proxy_ITS -> Proxy_ITS: timer I fired
+note over Proxy_ITS: Terminated
+destroy Proxy_ITS
+
+Proxy_ITC -> Proxy_ITC: timer D fired
+note over Proxy_ITC: Terminated
+destroy Proxy_ITC
+
+InviteTC -> InviteTC: timer D fired
+note over InviteTC: Terminated
+destroy InviteTC
+
+@enduml

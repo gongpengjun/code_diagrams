@@ -1,0 +1,68 @@
+@startuml
+title call forking: one device BUSY then another device ACCEPT flow
+
+skinparam monochrome true
+autonumber "F00 "
+hide footbox
+'skinparam BoxPadding 40
+
+skinparam headerFontSize 14
+header SIP-Forking-9
+
+'box "caller"
+participant "UAC" as Caller_UAC <<caller>>
+'end box
+
+'box "proxy"
+participant "Proxy" as Proxy <<server>>
+'end box
+
+'box "callee"
+participant "UAS 1" as Callee_UAS_1 <<callee>>
+participant "UAS 2" as Callee_UAS_2 <<callee>>
+participant "UAS 3" as Callee_UAS_3 <<callee>>
+'end box
+
+Caller_UAC -> Proxy: INVITE
+Caller_UAC <- Proxy: 100
+
+Proxy -> Callee_UAS_1: INVITE (to_tag:1)
+Proxy <- Callee_UAS_1: 180 (to_tag:1)
+Caller_UAC <- Proxy: 180 (to_tag:1)
+
+Proxy -> Callee_UAS_2: INVITE (to_tag:2)
+Proxy <- Callee_UAS_2: 180 (to_tag:2)
+Caller_UAC <- Proxy: 180 (to_tag:2)
+
+Proxy -> Callee_UAS_3: INVITE (to_tag:3)
+Proxy <- Callee_UAS_3: 180 (to_tag:3)
+Caller_UAC <- Proxy: 180 (to_tag:3)
+
+note right of Caller_UAC: ignore to_tag in 1xx response
+
+== callee user is in another call on device `UAS 1` and accept on device `UAS 2` ==
+
+Proxy <- Callee_UAS_1: 486 (to_tag:1)
+Proxy <- Callee_UAS_2: 200 (to_tag:2)
+note right of Proxy: 486 of UAS 1 arrive first, 200 of UAS 2 is ignored
+Proxy -> Callee_UAS_1: ACK (to_tag:1)
+Caller_UAC -> Proxy: ACK (to_tag:1)
+Caller_UAC <- Proxy: 486 (to_tag:1)
+note right of Proxy: cancel other INVITE transactions
+|||
+Proxy -> Callee_UAS_2: CANCEL (to_tag:2)
+note right of Proxy: `UAS 2` has already sent final response 200
+Proxy <- Callee_UAS_2: 481 (Transaction Does Not Exist) (to_tag:2)
+note right of Proxy: send BYE to kick UAS 2 off 
+Proxy -> Callee_UAS_2: BYE (to_tag:2)
+Proxy <- Callee_UAS_2: 200 (BYE) (to_tag:2)
+|||
+Proxy -> Callee_UAS_3: CANCEL (to_tag:3)
+Proxy <- Callee_UAS_3: 200 (CANCEL) (to_tag:3)
+Proxy <- Callee_UAS_3: 487 (INVITE) (to_tag:3)
+Proxy -> Callee_UAS_3: ACK (487) (to_tag:3)
+
+skinparam footerFontSize 14
+footer https://tools.ietf.org/html/rfc3261#page-55
+
+@enduml
