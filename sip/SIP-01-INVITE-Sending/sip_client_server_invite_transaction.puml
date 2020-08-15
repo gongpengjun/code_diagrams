@@ -1,0 +1,105 @@
+@startuml
+title SIP INVITE Client and Server Transaction
+
+skinparam monochrome true
+autonumber "F00 "
+hide footbox
+skinparam BoxPadding 40
+
+skinparam headerFontSize 14
+'skinparam headerFontColor red
+header SIP-0
+
+box "INVITE client transaction"
+participant "Calling" as InviteTC_Calling
+participant "Proceeding" as ITC_Proceeding
+participant "Completed" as ITC_Completed
+participant "Terminated" as ITC_Terminated
+end box
+
+box "INVITE server transaction"
+participant "Proceeding" as ITS_Proceeding
+participant "Completed" as ITS_Completed
+participant "Confirmed" as ITS_Confirmed
+participant "Terminated" as ITS_Terminated
+end box
+
+InviteTC_Calling -> ITS_Proceeding: INVITE
+hnote over InviteTC_Calling: Calling
+activate InviteTC_Calling
+activate ITS_Proceeding
+InviteTC_Calling -> InviteTC_Calling: start timer A (INVITE request retransmit)\n0.5s, 1s, 2s...32s
+InviteTC_Calling -> InviteTC_Calling: start timer B (INVITE transaction timeout)\n32s
+
+InviteTC_Calling -> ITC_Terminated: INVITE timeout (timer B fired)
+activate ITC_Terminated
+hnote over ITC_Terminated: Terminated
+destroy ITC_Terminated
+
+'InviteTC_Calling -> ITS_Proceeding: INVITE (timer A fired)
+deactivate InviteTC_Calling
+
+
+hnote over ITS_Proceeding: Proceeding
+ITC_Proceeding <- ITS_Proceeding: 100 Trying
+activate ITC_Proceeding
+hnote over ITC_Proceeding: Proceeding
+'note right of ITC_Proceeding: stop timer A
+'note right of ITC_Proceeding: stop timer B
+ITC_Proceeding -> ITC_Proceeding: restart timer C (call timeout)\n3mins(iOS)/1mins(Android)/5mins(Server)
+ITC_Proceeding <- ITS_Proceeding: 180 Ringing
+note left of ITC_Proceeding: Ringing
+deactivate ITC_Proceeding
+
+'== wait for HUMAN input ==
+ITS_Proceeding -> ITS_Terminated: 200 (user accept)
+activate ITS_Terminated
+ITC_Terminated <- ITS_Terminated: 200 (launch Ack transaction server to transmit 200 and wait ACK)
+hnote over ITS_Terminated: Terminated
+activate ITC_Terminated
+destroy ITS_Terminated
+hnote over ITC_Terminated: Terminated
+destroy ITC_Terminated
+
+ITS_Proceeding -> ITS_Completed: 300-699 (408 Timeout/486 Busy/487 cancel Terminated/603 Decline)
+deactivate ITS_Proceeding
+activate ITS_Completed
+ITC_Completed x<- ITS_Completed: 300-699
+hnote over ITS_Completed: Completed
+ITS_Completed -> ITS_Completed: start timer G (INVITE response retransmit)\n0.5s, 1s, 2s...32s
+ITS_Completed -> ITS_Completed: start timer H (Wait for ACK receipt)\n32s
+
+ITC_Completed x<- ITS_Completed: 300-699 (timer G fired)
+ITS_Completed -> ITS_Terminated: timer H fired (can't recv ACK in 32s)
+activate ITS_Terminated
+hnote over ITS_Terminated: Terminated
+destroy ITS_Terminated
+ITC_Completed <- ITS_Completed: 300-699 (timer G fired)
+deactivate ITS_Completed
+activate ITC_Completed
+hnote over ITC_Completed: Completed
+'note right of ITC_Completed: stop timer A
+'note right of ITC_Completed: stop timer B
+ITC_Completed -> ITC_Completed: start timer D (Wait for final response retransmits)\n32s
+ITC_Completed -> ITS_Confirmed: ACK (300-699)
+hnote over ITS_Confirmed: Confirmed
+activate ITS_Confirmed
+'note right of ITS_Confirmed: stop timer G
+'note right of ITS_Confirmed: stop timer H
+ITS_Confirmed -> ITS_Confirmed: start timer I (Wait for ACK retransmits)\n5s(Maximum duration a message in network)
+ITS_Confirmed -> ITS_Terminated: timer I fired
+activate ITS_Terminated
+deactivate ITS_Confirmed
+hnote over ITS_Terminated: Terminated
+destroy ITS_Terminated
+ITC_Completed -> ITC_Terminated: timer D fired
+activate ITC_Terminated
+deactivate ITC_Completed
+hnote over ITC_Terminated: Terminated
+destroy ITC_Terminated
+
+skinparam footerFontSize 14
+'skinparam footerFontColor red
+footer INVITE failure transaction is three way handshake: (INVITE,300-699,ACK) and delivered hop-by-hop by INVITE transaction itself\nINVITE successful transaction is three way handshake: (INVITE,200,ACK) and the 200 and ACK is delivered end-to-end by SIP core layer
+
+@enduml
