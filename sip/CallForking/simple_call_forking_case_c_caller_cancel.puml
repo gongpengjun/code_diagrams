@@ -7,7 +7,7 @@ hide footbox
 'skinparam BoxPadding 40
 
 skinparam headerFontSize 14
-header SIP-Forking-0
+header SIP-Forking-12
 
 'box "caller"
 participant "UAC" as Caller_UAC <<caller>>
