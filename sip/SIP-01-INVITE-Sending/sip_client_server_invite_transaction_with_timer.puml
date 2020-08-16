@@ -7,7 +7,6 @@ hide footbox
 skinparam BoxPadding 40
 
 skinparam headerFontSize 14
-'skinparam headerFontColor red
 header SIP-0
 
 box "INVITE client transaction"
@@ -100,7 +99,6 @@ hnote over ITC_Terminated: Terminated
 destroy ITC_Terminated
 
 skinparam footerFontSize 14
-'skinparam footerFontColor red
 footer INVITE failure transaction is three way handshake: (INVITE,300-699,ACK) and delivered hop-by-hop by INVITE transaction itself\nINVITE successful transaction is three way handshake: (INVITE,200,ACK) and the 200 and ACK is delivered end-to-end by SIP core layer
 
 @enduml
