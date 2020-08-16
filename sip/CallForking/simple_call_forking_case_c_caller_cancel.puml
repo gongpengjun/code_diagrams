@@ -1,0 +1,72 @@
+@startuml
+title call forking: caller user CANCEL flow
+
+skinparam monochrome true
+autonumber "F00 "
+hide footbox
+'skinparam BoxPadding 40
+
+skinparam headerFontSize 14
+header SIP-Forking-0
+
+'box "caller"
+participant "UAC" as Caller_UAC <<caller>>
+'end box
+
+'box "proxy"
+participant "Proxy" as Proxy <<server>>
+'end box
+
+'box "callee"
+participant "UAS 1" as Callee_UAS_1 <<callee>>
+participant "UAS 2" as Callee_UAS_2 <<callee>>
+participant "UAS 3" as Callee_UAS_3 <<callee>>
+'end box
+
+Caller_UAC -> Proxy: INVITE
+Caller_UAC <- Proxy: 100
+
+Proxy -> Callee_UAS_1: INVITE (to_tag:1)
+Proxy <- Callee_UAS_1: 180 (to_tag:1)
+Caller_UAC <- Proxy: 180 (to_tag:1)
+
+Proxy -> Callee_UAS_2: INVITE (to_tag:2)
+Proxy <- Callee_UAS_2: 180 (to_tag:2)
+Caller_UAC <- Proxy: 180 (to_tag:2)
+
+Proxy -> Callee_UAS_3: INVITE (to_tag:3)
+Proxy <- Callee_UAS_3: 180 (to_tag:3)
+Caller_UAC <- Proxy: 180 (to_tag:3)
+
+note right of Caller_UAC: ignore to_tag in 1xx response
+
+== caller user CANCEL, CANCEL triggers 487 terminated (INVITE) response ==
+
+Proxy <- Callee_UAS_1: 487 (to_tag:1)
+Proxy <- Callee_UAS_2: 487 (to_tag:2)
+Proxy <- Callee_UAS_3: 487 (to_tag:3)
+note right of Proxy: 487 of UAS 1 arrive first, other responses are ignored
+Proxy -> Callee_UAS_1: ACK (to_tag:1)
+Caller_UAC <- Proxy: 487 (to_tag:1)
+Caller_UAC -> Proxy: ACK (to_tag:1)
+note right of Proxy: cancel other INVITE transactions
+|||
+Proxy -> Callee_UAS_2: CANCEL (to_tag:2)
+note right of Proxy: `UAS 2` has already sent final response 487
+Proxy <- Callee_UAS_2: 481 (Transaction Does Not Exist) (to_tag:2)
+note right of Proxy: send BYE to kick UAS 2 off 
+Proxy -> Callee_UAS_2: BYE (to_tag:2)
+Proxy <- Callee_UAS_2: 200 (BYE) (to_tag:2)
+|||
+|||
+Proxy -> Callee_UAS_3: CANCEL (to_tag:3)
+note right of Proxy: `UAS 3` has already sent final response 487
+Proxy <- Callee_UAS_3: 481 (Transaction Does Not Exist) (to_tag:3)
+note right of Proxy: send BYE to kick UAS 3 off 
+Proxy -> Callee_UAS_3: BYE (to_tag:3)
+Proxy <- Callee_UAS_3: 200 (BYE) (to_tag:3)
+
+skinparam footerFontSize 14
+footer https://tools.ietf.org/html/rfc3261#page-55
+
+@enduml
