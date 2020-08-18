@@ -66,8 +66,14 @@ hnote over Proxy_ITC: Terminated
 Proxy_ITS <- Proxy_ITC: 200 OK (INVITE)
 deactivate Proxy_ITC
 hnote over Proxy_ITS: Terminated
-UAC_ITC <- Proxy_ITS: 200 OK (INVITE)
+UAC_ITC x<- Proxy_ITS: 200 OK (INVITE)
+'UAC_ITC <- Proxy_ITS: 200 OK (INVITE)
 deactivate Proxy_ITS
+Proxy_Core <- UAS_AckTS: 200 OK (INVITE) retransmit timer fired
+activate Proxy_Core
+UAC_ITC <- Proxy_Core: 200 OK (INVITE)
+deactivate Proxy_Core
+
 hnote over UAC_ITC: Terminated
 deactivate UAC_ITC
 note left of UAC_ITC: Established
